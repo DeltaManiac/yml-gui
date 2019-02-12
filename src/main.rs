@@ -90,7 +90,7 @@ fn draw_svg(manifest: &Manifest) {
     let background = Rectangle::new()
         .set("width", "100%")
         .set("height", "100%")
-        .set("fill", "black ");
+        .set("fill", "white");
 
     let mut document = Document::new()
         .set("manifest", (0, 0, 100, 70))
@@ -107,10 +107,11 @@ fn draw_svg(manifest: &Manifest) {
             .set("y", RECT_PADDING)
             .set("width", RECT_WIDTH)
             .set("height", RECT_HEIGHT)
-            .set("fill", "lightblue");
+            .set("fill", "lightblue")
+            .set("stroke","black");
 
         let instance_name_text = Text::new()
-            .set("fill", "yellow")
+            .set("fill", "black")
             .set(
                 "x",
                 TEXT_PADDING_TOP + RECT_WIDTH * (idx as u32) + RECT_PADDING * (idx as u32),
@@ -124,8 +125,35 @@ fn draw_svg(manifest: &Manifest) {
             zones.push_str(" ");
         }
         zones.push_str("]");
+        let seperator = Line::new()
+            .set("fill", "black")
+            .set(
+                "x1",
+                10 + RECT_WIDTH * (idx as u32) + RECT_PADDING * (idx as u32),
+            )
+            .set("y1", TEXT_PADDING_TOP * 1 + TEXT_PADDING_TOP / 4)
+            .set(
+                "x2",
+                10 + RECT_WIDTH * (idx as u32) + RECT_PADDING * (idx as u32) + RECT_WIDTH,
+            )
+            .set("y2", TEXT_PADDING_TOP * 1 + TEXT_PADDING_TOP / 4)
+            .set("stroke","black");
+        let seperator2 = Line::new()
+            .set("fill", "black")
+            .set(
+                "x1",
+                10 + RECT_WIDTH * (idx as u32) + RECT_PADDING * (idx as u32),
+            )
+            .set("y1", TEXT_PADDING_TOP * 1 + TEXT_PADDING_TOP / 4 +3)
+            .set(
+                "x2",
+                10 + RECT_WIDTH * (idx as u32) + RECT_PADDING * (idx as u32) + RECT_WIDTH,
+            )
+            .set("y2", TEXT_PADDING_TOP * 1 + TEXT_PADDING_TOP / 4 + 3)
+            .set("stroke","black");
+            //.set("pathLength", RECT_WIDTH);
         let instance_azs_text = Text::new()
-            .set("fill", "yellow")
+            .set("fill", "black")
             .set(
                 "x",
                 TEXT_PADDING_LEFT + RECT_WIDTH * (idx as u32) + RECT_PADDING * (idx as u32),
@@ -134,6 +162,8 @@ fn draw_svg(manifest: &Manifest) {
             .add(svg::node::Text::new(zones.clone()));
         document = document
             .add(group.add(instance_rect).add(instance_name_text))
+            .add(seperator)
+            .add(seperator2)
             .add(instance_azs_text);
     }
     svg::save("image.svg", &document).unwrap();
@@ -143,4 +173,5 @@ fn main() {
     //load_yml();
     let manifest = load_yml();
     draw_svg(&manifest);
+    println!("image generated at : image.svg")
 }
