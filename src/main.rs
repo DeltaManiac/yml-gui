@@ -169,9 +169,43 @@ fn draw_svg(manifest: &Manifest) {
     svg::save("image.svg", &document).unwrap();
 }
 
+fn draw_svg_2(manifest:&Manifest){
+    
+}
+
+
+fn calculate(canvas_width:u16,canvas_height:u16,instance_height:u16, instance_width:u16,instance_count:u16, instance_padding:u16) {
+    let canvas_estate = canvas_height*canvas_width;
+    let instance_estate = instance_height*instance_height + (4*instance_padding );
+    let canvas_max_instance_count = canvas_estate/instance_estate;
+    let canvas_max_row_count = canvas_height/(instance_height + 2*instance_padding);
+    let canvas_max_col_count = canvas_width/(instance_width + 2*instance_padding);
+
+    println!("==============");
+    println!("Instance Dimensions:");
+    println!("Height: {}",instance_height);
+    println!("Width: {}",instance_width);
+    println!("Size: {}",instance_estate);
+    println!("\nCanvas Dimensions:");
+    println!("Height: {}",canvas_height);
+    println!("Width: {}",canvas_width);
+    println!("Size: {}",canvas_estate);
+    println!("\nMax Fit Count: {}",canvas_max_instance_count);
+    println!("Max Row Count: {}",canvas_max_row_count);
+    println!("Max Col Count: {}",canvas_max_col_count);
+
+    println!("\nInstance Count: {}",instance_count);
+    println!("==============");
+
+}
 fn main() {
+    calculate(100,100,100,100,1,0);
+    calculate(200,200,100,100,1,0);
+
+    calculate(100,100,100,100,1,10);
+    calculate(200,200,100,100,1,10);
     //load_yml();
-    let manifest = load_yml();
-    draw_svg(&manifest);
+    //let manifest = load_yml();
+    //draw_svg(&manifest);
     println!("image generated at : image.svg")
 }
