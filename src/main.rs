@@ -29,19 +29,25 @@ fn hello_world<'a>(ui: &Ui<'a>, state: &mut ui::State) -> bool {
         .build(|| {
             ui.menu_bar(|| {
                 ui.menu(im_str!("File")).build(|| {
-                    if ui.menu_item(im_str!("Exit")).build() {
-                        state.quit = true;
-                        //running = false;
-                    };
                     if ui
                         .menu_item(im_str!("Open"))
-                        .shortcut(im_str!("CTRL+O"))
+                        //                        .shortcut(im_str!("CTRL+O"))
                         .build()
                     {
                         menu_option = MenuOption::Open;
                     };
+                    ui.menu_item(im_str!("Metrics"))
+                        .selected(&mut state.show_metrics)
+                        .build();
+                    if ui.menu_item(im_str!("Exit")).build() {
+                        state.quit = true;
+                        //running = false;
+                    };
                 });
             });
+            if state.show_metrics {
+                ui.show_metrics_window(&mut state.show_metrics);
+            }
             match menu_option {
                 MenuOption::Open => {
                     let result = nfd::dialog().filter("yml").open().unwrap_or_else(|e| {

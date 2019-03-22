@@ -5,7 +5,7 @@ use imgui_winit_support;
 use std::time::Instant;
 pub struct State {
     pub quit: bool,
-    //pub yml_str: Option<ImString>,
+    pub show_metrics: bool,
     pub yml_str: Option<String>,
     pub zookeeper_settings: Option<zookeeper::ZookeeperSettings>,
 }
@@ -14,6 +14,7 @@ impl Default for State {
     fn default() -> State {
         State {
             quit: false,
+            show_metrics: false,
             zookeeper_settings: None,
             yml_str: None,
         }
