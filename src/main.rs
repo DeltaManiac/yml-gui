@@ -1,211 +1,123 @@
 #[macro_use]
 extern crate serde_derive;
-use std::fs::File;
-use svg::node::element::*;
-use svg::Document;
+use imgui::*;
+use nfd::Response;
+use std::*;
+mod ui;
+mod zookeeper;
+use ui::*;
+const CLEAR_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 
-const RECT_WIDTH: u32 = 150;
-const RECT_HEIGHT: u32 = 200;
-const RECT_PADDING: u32 = 10;
-const TEXT_PADDING_LEFT: u32 = RECT_PADDING + 20;
-const TEXT_PADDING_TOP: u32 = RECT_PADDING + 20;
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Job {
-    name: String,
-    release: String,
-    // consumes:Option<String>
-    // provides:Option<String>
-    // properties:Option<String>
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Network {
-    name: String,
-    static_ips: Option<Vec<String>>,
-    default: Option<Vec<String>>,
-}
-#[derive(Serialize, Deserialize, Debug)]
-struct VMResource {
-    cpu: i16,
-    ram: i16,
-    ephemeral_disk_size: i16,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Instance {
-    name: String,
-    azs: Vec<String>,
-    instances: i16,
-    jobs: Vec<Job>,
-    vm_type: String,
-    vm_resources: Option<VMResource>,
-    stemcell: String,
-    persistent_disk: Option<i16>,
-    persistent_disk_type: Option<String>,
-    networks: Vec<Network>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Feature {
-    converge_variable: Option<bool>,
-    randomize_az_placement: Option<bool>,
-    use_dns_address: Option<bool>,
-    use_tmpfs_job_config: Option<bool>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Stemcell {
-    alias: String,
-    os: Option<String>,
-    version: String,
-    name: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Release {
-    name: String,
-    version: String,
-    url: Option<String>,
-    sha1: Option<String>,
-    //stemcell: Option<Stemcell>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Manifest {
-    instance_groups: Vec<Instance>,
-    name: String,
-    features: Option<Feature>,
-    releases: Vec<Release>,
-    stemcells: Vec<Stemcell>,
-}
-
-fn load_yml() -> Manifest {
-    let f = File::open("sample/zookeeper.yml").expect("Couldnt open file");
-    let m: Manifest = serde_yaml::from_reader(f).unwrap();
-    m
-}
-
-fn draw_svg(manifest: &Manifest) {
-    let background = Rectangle::new()
-        .set("width", "100%")
-        .set("height", "100%")
-        .set("fill", "white");
-
-    let mut document = Document::new()
-        .set("manifest", (0, 0, 100, 70))
-        .add(background);
-
-    for (idx, instance) in (&manifest.instance_groups).iter().enumerate() {
-        let group = Group::new();
-        let instance_rect = Rectangle::new()
-            .set(
-                "x",
-                10 + RECT_WIDTH * (idx as u32) + RECT_PADDING * (idx as u32),
-            )
-            //.set("y", 10 + RECT_HEIGHT * (idx as u8) + RECT_PADDING)
-            .set("y", RECT_PADDING)
-            .set("width", RECT_WIDTH)
-            .set("height", RECT_HEIGHT)
-            .set("fill", "lightblue")
-            .set("stroke","black");
-
-        let instance_name_text = Text::new()
-            .set("fill", "black")
-            .set(
-                "x",
-                TEXT_PADDING_TOP + RECT_WIDTH * (idx as u32) + RECT_PADDING * (idx as u32),
-            )
-            .set("y", TEXT_PADDING_LEFT)
-            .add(svg::node::Text::new(instance.name.clone()));
-
-        let mut zones: String = "[ ".to_string();
-        for az in &instance.azs {
-            zones.push_str(&az[..]);
-            zones.push_str(" ");
-        }
-        zones.push_str("]");
-        let seperator = Line::new()
-            .set("fill", "black")
-            .set(
-                "x1",
-                10 + RECT_WIDTH * (idx as u32) + RECT_PADDING * (idx as u32),
-            )
-            .set("y1", TEXT_PADDING_TOP * 1 + TEXT_PADDING_TOP / 4)
-            .set(
-                "x2",
-                10 + RECT_WIDTH * (idx as u32) + RECT_PADDING * (idx as u32) + RECT_WIDTH,
-            )
-            .set("y2", TEXT_PADDING_TOP * 1 + TEXT_PADDING_TOP / 4)
-            .set("stroke","black");
-        let seperator2 = Line::new()
-            .set("fill", "black")
-            .set(
-                "x1",
-                10 + RECT_WIDTH * (idx as u32) + RECT_PADDING * (idx as u32),
-            )
-            .set("y1", TEXT_PADDING_TOP * 1 + TEXT_PADDING_TOP / 4 +3)
-            .set(
-                "x2",
-                10 + RECT_WIDTH * (idx as u32) + RECT_PADDING * (idx as u32) + RECT_WIDTH,
-            )
-            .set("y2", TEXT_PADDING_TOP * 1 + TEXT_PADDING_TOP / 4 + 3)
-            .set("stroke","black");
-            //.set("pathLength", RECT_WIDTH);
-        let instance_azs_text = Text::new()
-            .set("fill", "black")
-            .set(
-                "x",
-                TEXT_PADDING_LEFT + RECT_WIDTH * (idx as u32) + RECT_PADDING * (idx as u32),
-            )
-            .set("y", TEXT_PADDING_TOP * 2)
-            .add(svg::node::Text::new(zones.clone()));
-        document = document
-            .add(group.add(instance_rect).add(instance_name_text))
-            .add(seperator)
-            .add(seperator2)
-            .add(instance_azs_text);
-    }
-    svg::save("image.svg", &document).unwrap();
-}
-
-fn draw_svg_2(manifest:&Manifest){
-    
-}
-
-
-fn calculate(canvas_width:u16,canvas_height:u16,instance_height:u16, instance_width:u16,instance_count:u16, instance_padding:u16) {
-    let canvas_estate = canvas_height*canvas_width;
-    let instance_estate = instance_height*instance_height + (4*instance_padding );
-    let canvas_max_instance_count = canvas_estate/instance_estate;
-    let canvas_max_row_count = canvas_height/(instance_height + 2*instance_padding);
-    let canvas_max_col_count = canvas_width/(instance_width + 2*instance_padding);
-
-    println!("==============");
-    println!("Instance Dimensions:");
-    println!("Height: {}",instance_height);
-    println!("Width: {}",instance_width);
-    println!("Size: {}",instance_estate);
-    println!("\nCanvas Dimensions:");
-    println!("Height: {}",canvas_height);
-    println!("Width: {}",canvas_width);
-    println!("Size: {}",canvas_estate);
-    println!("\nMax Fit Count: {}",canvas_max_instance_count);
-    println!("Max Row Count: {}",canvas_max_row_count);
-    println!("Max Col Count: {}",canvas_max_col_count);
-
-    println!("\nInstance Count: {}",instance_count);
-    println!("==============");
-
-}
 fn main() {
-    calculate(100,100,100,100,1,0);
-    calculate(200,200,100,100,1,0);
+    let mut state = ui::State::default();
+    ui::run("hello.rs".to_owned(), CLEAR_COLOR, hello_world, state);
+}
 
-    calculate(100,100,100,100,1,10);
-    calculate(200,200,100,100,1,10);
-    //load_yml();
-    //let manifest = load_yml();
-    //draw_svg(&manifest);
-    println!("image generated at : image.svg")
+fn hello_world<'a>(ui: &Ui<'a>, state: &mut ui::State) -> bool {
+    let mut menu_option = MenuOption::None;
+    //let mut draw_list = ui.get_window_draw_list();
+    ui.window(im_str!("Hello world"))
+        .title_bar(false)
+        .position((0.0, 0.0), ImGuiCond::FirstUseEver)
+        //      .movable(false)
+        .collapsible(false)
+        //.always_auto_resize(true)
+        .resizable(false)
+        .scroll_bar(false)
+        .menu_bar(true)
+        .size((1024f32, 768f32), ImGuiCond::FirstUseEver)
+        .build(|| {
+            ui.menu_bar(|| {
+                ui.menu(im_str!("File")).build(|| {
+                    if ui.menu_item(im_str!("Exit")).build() {
+                        state.quit = true;
+                        //running = false;
+                    };
+                    if ui
+                        .menu_item(im_str!("Open"))
+                        .shortcut(im_str!("CTRL+O"))
+                        .build()
+                    {
+                        menu_option = MenuOption::Open;
+                    };
+                });
+            });
+            match menu_option {
+                MenuOption::Open => {
+                    let result = nfd::dialog().filter("yml").open().unwrap_or_else(|e| {
+                        panic!(e);
+                    });
+                    match result {
+                        Response::Okay(file_path) => {
+                            use std::fs::File;
+                            use std::io::prelude::Read;
+                            use std::io::BufReader;
+                            let file = File::open(file_path).expect("Failed to Open File");
+                            let mut buf_reader = BufReader::new(file);
+                            let mut contents = String::new();
+                            buf_reader
+                                .read_to_string(&mut contents)
+                                .expect("Failed to Read File");
+                            //state.yml_str = Some(ImString::new(contents))
+                            state.yml_str = Some(contents)
+                        }
+                        Response::Cancel => println!("User canceled"),
+                        _ => (),
+                    }
+                }
+
+                _ => {}
+            }
+
+            //            ui.columns(2, im_str!("Main"), true);
+            //           ui.separator();
+            if state.yml_str.is_some() {
+                //ui.input_text_multiline(
+                println!(
+                    "Avail/max {:?}/{:?}",
+                    ui.get_content_region_avail(),
+                    ui.get_content_region_max()
+                );
+                //         println!("Count:{:?}", ui.get_columns_count());
+                //        println!("Index:{:?}", ui.get_column_index());
+                //       println!("offset{:?}", ui.get_column_offset(1));
+                //      println!("Width{:?}", ui.get_column_width(1));
+                println!("Cursor{:?}", ui.get_cursor_pos());
+                println!("ScreenCursor{:?}", ui.get_cursor_screen_pos());
+
+                //let mut draw_list = ui.get_window_draw_list();
+                //            ui.new_line();
+                /*                let canvas_pos = ui.get_cursor_screen_pos();
+                //let canvas_pos = (ui.get_column_offset(1), 150.);
+                let canvas_size = //(512., 768.);
+                ui.get_content_region_avail();
+                const CANVAS_CORNER_COLOR1: [f32; 3] = [1., 0.2, 0.2];
+                const CANVAS_CORNER_COLOR2: [f32; 3] = [1., 0.2, 0.24];
+                const CANVAS_CORNER_COLOR3: [f32; 3] = [1., 0.24, 0.27];
+                const CANVAS_CORNER_COLOR4: [f32; 3] = [1., 0.2, 0.24];
+                draw_list.add_rect_filled_multicolor(
+                    canvas_pos,
+                    (canvas_pos.0 + canvas_size.0, canvas_pos.1 + canvas_size.1),
+                    CANVAS_CORNER_COLOR1,
+                    CANVAS_CORNER_COLOR1,
+                    CANVAS_CORNER_COLOR1,
+                    CANVAS_CORNER_COLOR1,
+                );*/
+                //zookeeper::add_rects(ui, state, &mut draw_list);
+                zookeeper::add_rects(ui, state);
+                ui.text(
+                    //   im_str!(""),
+                    &mut ImString::new(state.yml_str.clone().unwrap()),
+                    //(512., 768.),
+                )
+                //.no_horizontal_scroll(true)
+                //.read_only(true)
+                //.build();
+            }
+
+            //          ui.next_column();
+            // UI AREA
+        });
+
+    true
 }
