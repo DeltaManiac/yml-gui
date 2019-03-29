@@ -9,7 +9,7 @@ use ui::*;
 const CLEAR_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 
 fn main() {
-    let mut state = ui::State::default();
+    let state = ui::State::default();
     ui::run("hello.rs".to_owned(), CLEAR_COLOR, hello_world, state);
 }
 

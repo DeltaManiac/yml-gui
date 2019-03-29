@@ -8,6 +8,8 @@ pub struct ZookeeperSettings {
     text_padding: [f32; 2],
     image_padding: [f32; 4],
     image_color: [f32; 3],
+    errand_inset: [f32; 2],
+    errand_color: [f32; 3],
 }
 impl Default for ZookeeperSettings {
     fn default() -> Self {
@@ -17,6 +19,8 @@ impl Default for ZookeeperSettings {
             text_padding: [1.; 2],
             image_padding: [1.; 4],
             image_color: [1., 0., 0.],
+            errand_inset: [2.5, 2.5],
+            errand_color: [0., 0., 1.],
         }
     }
 }
@@ -47,6 +51,7 @@ struct Instance {
     name: String,
     azs: Vec<String>,
     instances: i16,
+    lifecycle: Option<String>,
     jobs: Vec<Job>,
     vm_type: String,
     vm_resources: Option<VMResource>,
@@ -139,7 +144,16 @@ pub fn add_rects(ui: &Ui, state: &mut State) {
                         25.0,
                     )
                     .build();
+                    ui.slider_float2(
+                        im_str!("Horizontal and Vertical Errand Inset"),
+                        &mut zk.errand_inset,
+                        0.,
+                        15.0,
+                    )
+                    .build();
                     ui.color_edit(im_str!("Item Color"), &mut zk.image_color)
+                        .build();
+                    ui.color_edit(im_str!("Errand Color"), &mut zk.errand_color)
                         .build();
                 });
             let draw_list = ui.get_window_draw_list();
@@ -163,25 +177,73 @@ fn draw_image(
         140.0,
     );
     for instance in (&manifest.instance_groups).iter() {
-        let a = ui.calc_text_size(&ImString::new(instance.name.clone()), true, x + size.0);
+        let mut line_height = ui
+            .calc_text_size(&ImString::new(instance.name.clone()), true, x + size.0)
+            .y;
         draw_list
             .add_rect((x, y), (x + size.0, y + size.1), zk.image_color)
             .filled(true)
             .build();
         ui.set_cursor_screen_pos((x + zk.text_padding[0], y + zk.text_padding[1]));
+        ui.with_text_wrap_pos(x + size.0, || ui.text(ImString::new(instance.name.clone())));
         draw_list
-            .add_line((x, y + a.y), (x + size.0, y + a.y), [0.0, 0.0, 0.])
+            .add_line(
+                (x, y + line_height),
+                (x + size.0, y + line_height),
+                [0.0, 0.0, 0.],
+            )
             .thickness(1.)
             .build();
-        ui.with_text_wrap_pos(x + size.0, || ui.text(ImString::new(instance.name.clone())));
+        //Release
+        let release = manifest
+            .releases
+            .iter()
+            .find(|&x| x.name == instance.jobs[0].release)
+            .unwrap();
+        let mut txt = String::new();
+        txt.push_str(&release.name);
+        txt.push('(');
+        txt.push_str(&release.version);
+        txt.push(')');
+        txt.push('/');
+        txt.push_str(&instance.name);
+        ui.set_cursor_screen_pos((x + zk.text_padding[0], y + line_height + zk.text_padding[1]));
+        ui.with_text_wrap_pos(x + size.0, || ui.text(ImString::new(txt.clone())));
+        line_height += ui
+            .calc_text_size(&ImString::new(txt.clone()), true, x + size.0)
+            .y;
+        //AZS
         let mut zones: String = "[ ".to_string();
         for az in &instance.azs {
             zones.push_str(&az[..]);
             zones.push_str(" ");
         }
         zones.push_str("]");
-        //        ui.set_cursor_screen_pos((x + zk.text_padding[0], y + zk.text_padding[1]));
-        //        ui.with_text_wrap_pos(x + size.0, || ui.text(ImString::new(zones.clone())));
+        //line_height += ui
+        //    .calc_text_size(&ImString::new(zones.clone()), true, x + size.0)
+        //    .y;
+        ui.set_cursor_screen_pos((x + zk.text_padding[0], y + line_height + zk.text_padding[1]));
+        ui.with_text_wrap_pos(x + size.0, || ui.text(ImString::new(zones.clone())));
+        line_height += ui
+            .calc_text_size(&ImString::new(zones.clone()), true, x + size.0)
+            .y;
+
+        //StemCELLL
+        let stemcell = manifest
+            .stemcells
+            .iter()
+            .find(|&x| x.alias == instance.stemcell)
+            .unwrap();
+        let mut se = String::new();
+        se.push_str(&stemcell.os.clone().unwrap());
+        se.push(':');
+        se.push_str(&stemcell.version.clone());
+        ui.set_cursor_screen_pos((x + zk.text_padding[0], y + line_height + zk.text_padding[1]));
+        ui.with_text_wrap_pos(x + size.0, || ui.text(ImString::new(se.clone())));
+        line_height += ui
+            .calc_text_size(&ImString::new(se.clone()), true, x + size.0)
+            .y;
+
         //Start drawing border
         draw_list
             .add_line((x, y), (x, y + size.1), [1., 1., 1.])
@@ -196,6 +258,41 @@ fn draw_image(
             .add_line((x, y + size.1), (x + size.0, y + size.1), [1., 1., 1.])
             .build();
         //End Drawing Border
+        //Start drawing errand border
+        if instance.lifecycle.is_some() {
+            if instance.lifecycle.clone().unwrap_or(String::from("none")) == "errand" {
+                let inset: (f32, f32) = (zk.errand_inset[0], zk.errand_inset[1]);
+                draw_list
+                    .add_line(
+                        (x + inset.0, y + inset.1),
+                        (x + inset.0, y + size.1 - inset.1),
+                        zk.errand_color,
+                    )
+                    .build();
+                draw_list
+                    .add_line(
+                        (x - inset.0 + size.0, y + inset.1),
+                        (x - inset.0 + size.0, y + size.1 - inset.1),
+                        zk.errand_color,
+                    )
+                    .build();
+                draw_list
+                    .add_line(
+                        (x + inset.0, y - 1. + inset.1),
+                        (x + size.0 - inset.0, y - 1. + inset.1),
+                        zk.errand_color,
+                    )
+                    .build();
+                draw_list
+                    .add_line(
+                        (x + inset.0, y + size.1 - inset.1),
+                        (x + size.0 - inset.0, y + size.1 - inset.1),
+                        zk.errand_color,
+                    )
+                    .build();
+            }
+        }
+        //End drawing errand border
         x += size.0 + zk.item_horizontal_spacing;
         if x >= real_estate.0 {
             x = pos.0 + zk.item_horizontal_spacing;
